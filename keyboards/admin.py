@@ -2,7 +2,6 @@ from utils import get_api
 from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, ReplyKeyboardMarkup)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from database.requests import all_orders_rq, get_items
 
 start_kb = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Редактировать меню📝', callback_data='edit_menu')],
@@ -27,7 +26,7 @@ async def catalog():
 
 
 async def items(category_id):
-    all_items = await get_items(category_id)
+    all_items = await get_api(f'user/items/{category_id}')
     keyboard = InlineKeyboardBuilder()
     keyboard.add(
         InlineKeyboardButton(text='Добавить товар в данную категорию✅', callback_data=f'add_category_{category_id}'))
@@ -35,7 +34,7 @@ async def items(category_id):
     keyboard.add(InlineKeyboardButton(text='Назад🔙', callback_data='edit_menu'))
 
     for item in all_items:
-        keyboard.add(InlineKeyboardButton(text=item.name, callback_data=f'item_{item.id}'))
+        keyboard.add(InlineKeyboardButton(text=item['name'], callback_data=f'item_{item['id']}'))
 
     return keyboard.adjust(1).as_markup()
 
@@ -64,15 +63,27 @@ yes_or_no = ReplyKeyboardMarkup(keyboard=[
 ])
 
 async def all_orders_func():
-    all_orders = await all_orders_rq()
+    all_orders = await get_api('admin/all_orders')
     keyboard = InlineKeyboardBuilder()
     for order in all_orders:
-        keyboard.add(InlineKeyboardButton(text=order.log_status[-26:-7], callback_data=f'all_orders_{order.id}'))
+        keyboard.add(InlineKeyboardButton(text=order['log_status'][-26:-7], callback_data=f'all_orders_{order['id']}'))
     keyboard.add(InlineKeyboardButton(text='🏠', callback_data='back_to_root'))
     return keyboard.adjust(1).as_markup()
 
 async def back_orders():
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='Назад', callback_data='admin_order')]
+    ])
+    return keyboard
+
+async def back_catalogs():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='Назад', callback_data='edit_menu')]
+    ])
+    return keyboard
+
+async def back_items(category_id):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='Назад', callback_data=f'category_{category_id}')]
     ])
     return keyboard
