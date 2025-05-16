@@ -1,7 +1,7 @@
 import keyboards.admin as kb_admin
 from utils import get_api, post_api, patch_api, delete_api
 from aiogram import F, Router
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (CallbackQuery, FSInputFile, InputMediaPhoto,
                            Message, ReplyKeyboardRemove)

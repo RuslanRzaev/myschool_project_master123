@@ -1,7 +1,6 @@
 from utils import get_api
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from custom_filters.admin import ADMINS
 
 
 async def main(telegram_id: int):
@@ -10,7 +9,7 @@ async def main(telegram_id: int):
         [InlineKeyboardButton(text='Заказы', callback_data='user_orders'),
          InlineKeyboardButton(text='Корзина', callback_data='basket')]
     ])
-    if telegram_id in ADMINS:
+    if await get_api(f'user/check_admin/{telegram_id}'):
         keyboard.inline_keyboard.append([InlineKeyboardButton(text='Админ', callback_data='root')])
     return keyboard
 
@@ -71,6 +70,14 @@ async def main_button():
     return keyboard
 
 
+async def button_order(order_id):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='QR_CODE', callback_data=f'qr_code_{order_id}')],
+        [InlineKeyboardButton(text='🏠', callback_data='main')]
+    ])
+    return keyboard
+
+
 async def order_user(user_id):
     all_orders = await get_api(f'user/orders/{user_id}')
     keyboard = InlineKeyboardBuilder()
@@ -80,8 +87,10 @@ async def order_user(user_id):
     return keyboard.adjust(1).as_markup()
 
 
-async def back_orders():
+async def back_orders(order_id):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='Назад', callback_data='user_orders')]
+        [InlineKeyboardButton(text='Назад', callback_data='user_orders')],
+        [InlineKeyboardButton(text='QR_CODE', callback_data=f'qr_code_{order_id}')]
+
     ])
     return keyboard

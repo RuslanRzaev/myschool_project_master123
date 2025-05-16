@@ -1,29 +1,21 @@
 from aiogram import types
 from aiogram.filters import Filter
-
-ADMINS = [905042750]
-KITCHEN = (905042750,)
+from utils import get_api
 
 
 class AdminProtectMessage(Filter):
-    def __init__(self):
-        self.admins = ADMINS
 
     async def __call__(self, message: types.Message):
-        return message.from_user.id in self.admins
+        return get_api(f'user/check_admin/{message.from_user.id}')
 
 
 class AdminProtectCallback(Filter):
-    def __init__(self):
-        self.admins = ADMINS
 
     async def __call__(self, callback: types.CallbackQuery):
-        return callback.from_user.id in self.admins
+        return get_api(f'user/check_admin/{callback.from_user.id}')
 
 
 class KitchenProtect(Filter):
-    def __init__(self):
-        self.kitchen = KITCHEN
 
     async def __call__(self, message: types.Message):
-        return message.from_user.id in self.kitchen
+        return get_api(f'user/check_kitchen/{message.from_user.id}')

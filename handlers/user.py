@@ -1,9 +1,7 @@
-import random
-
-from utils import get_api, post_api, delete_api, patch_api
+from utils import get_api, post_api, delete_api
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart
-from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message
+from aiogram.filters import Command
+from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message, BufferedInputFile
 from keyboards import kitchen as kitchen_kb
 from keyboards import user as user_kb
 from utils import KITCHEN_CHAT
@@ -81,7 +79,6 @@ async def cmd_start(callback: CallbackQuery) -> None:
 @user.callback_query(F.data == 'basket')
 async def mybasket(callback: CallbackQuery):
     my_items = await get_api(f'user/bucket/{callback.from_user.id}')
-    print(my_items)
     items_data = []
     items_id = []
     for myitem in my_items:
@@ -112,6 +109,16 @@ async def open_item(callback: CallbackQuery):
     await callback.message.edit_media(photo, reply_markup=await user_kb.kb_items_basket(id))
 
 
+@user.callback_query(F.data.startswith('qr_code_'))
+async def qr_code(callback: CallbackQuery):
+    order_id = callback.data.split('_')[-1]
+    response = await get_api(f'user/order_qr_code/{order_id}', need_json=False)
+    photo_bytes = response.read()
+    await callback.message.answer_photo(photo=BufferedInputFile(file=photo_bytes, filename='123'),
+                                        reply_markup=await user_kb.main_button(), caption=f'Заказ №{order_id}')
+    await callback.answer('')
+
+
 @user.callback_query(F.data.startswith('order'))
 async def order(callback: CallbackQuery):
     my_items = await get_api(f'user/bucket/{callback.from_user.id}')
@@ -137,6 +144,9 @@ async def order(callback: CallbackQuery):
         await callback.bot.send_message(chat_id=KITCHEN_CHAT, text='\n'.join(items) + f'\n#Заказ{order['id']}',
                                         reply_markup=await kitchen_kb.ready_order(order['id']))
         await delete_api(f'user/order/{callback.from_user.id}')
+        await post_api('kitchen/new_order/',
+                       json={"id": order['id'], "items": await get_api(f'user/items_in_order/{order['id']}')})
+        print(order['id'])
         await callback.message.answer('Ваш заказ уже готовится⌛\n Скоро вам придёт уведомление о готовности заказа',
                                       reply_markup=await user_kb.main_button())
         await callback.answer('')
@@ -154,7 +164,8 @@ async def orders_user(callback: CallbackQuery):
 @user.callback_query(F.data.startswith('user_orders_'))
 async def open_order(callback: CallbackQuery):
     order_id = callback.data.split('_')[-1]
-    photo = InputMediaPhoto(media=FSInputFile('img/banner_menu.png'), caption=f'Номер заказа - {order_id}\nСодержание заказа: {await get_api(f'user/items_in_order/{order_id}')}\nСтатус заказа - {await get_api(f'user/status_order/{order_id}')}\nСекретный код - {await get_api(f'user/secret_code/{order_id}')}\nЦена - {await get_api(f'user/price_order/{order_id}')}\nДата выдачи - {int(await get_api(f'user/day_order/{order_id}')):02}:{int(await get_api(f'user/month_order/{order_id}')):02}:{int(await get_api(f'user/year_order/{order_id}'))}')
+    photo = InputMediaPhoto(media=FSInputFile('img/banner_menu.png'),
+                            caption=f'Номер заказа - {order_id}\nСодержание заказа: {await get_api(f'user/items_in_order/{order_id}')}\nСтатус заказа - {await get_api(f'user/status_order/{order_id}')}\nСекретный код - {await get_api(f'user/secret_code/{order_id}')}\nЦена - {await get_api(f'user/price_order/{order_id}')}\nДата выдачи - {int(await get_api(f'user/day_order/{order_id}')):02}:{int(await get_api(f'user/month_order/{order_id}')):02}:{int(await get_api(f'user/year_order/{order_id}'))}')
     await callback.message.edit_media(
         media=photo,
-        reply_markup=await user_kb.back_orders())
+        reply_markup=await user_kb.back_orders(order_id))
